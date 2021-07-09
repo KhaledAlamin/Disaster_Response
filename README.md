@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Disaster Response Pipeline Project
 
 ### Instructions:
@@ -12,3 +13,7 @@
     `python run.py`
 
 3. Go to http://0.0.0.0:3001/
+=======
+# Disaster_Response
+Developed app used to categorize the messages sent during a disaster occurring
+>>>>>>> fe74a91679b897c9f3e8cbb01c454475ed7f573a

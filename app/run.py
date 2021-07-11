@@ -7,7 +7,8 @@ from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Heatmap
+import plotly.express as px
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
@@ -43,8 +44,43 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
+    cor = df.drop('id', axis =1).corr()
+    
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
+    graphs = []
+    
+    graph_one = []
+    graph_one.append(
+          Bar(
+                    x=genre_names,
+                    y=genre_counts
+                )
+    )
+          
+    layout_one = dict(title = 'Distribution of Message Genres',
+                xaxis = dict(title = 'Genre'),
+                yaxis = dict(title = 'Count')
+                #height = 300,
+                #width = 500
+                )
+    
+    graph_two = []
+    graph_two.append(
+          Heatmap(
+                    z=cor.values,
+                    x=cor.index.values,
+                    y=cor.columns.values,
+                    colorscale = 'Greens'
+                )
+    )
+          
+    layout_two = dict(title = 'Correlation of categorical data',
+                #xaxis = dict(title = 'Genre'),
+                #yaxis = dict(title = 'Count')
+                height = 700,
+                width = 700
+                )
     graphs = [
         {
             'data': [
@@ -63,8 +99,28 @@ def index():
                     'title': "Genre"
                 }
             }
+        },
+        
+        {
+            'data': [
+                Heatmap(
+                    z=cor.values,
+                    x=cor.index.values,
+                    y=cor.columns.values
+                )
+            ],
+
+            'layout': {
+                'title': 'Correlation of categorical data',
+            }
         }
     ]
+    
+    figures = []
+    
+    figures.append(dict(data=graph_one, layout=layout_one))
+    figures.append(dict(data=graph_two, layout=layout_two))
+    
     
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]

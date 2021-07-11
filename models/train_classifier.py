@@ -15,9 +15,10 @@ import re
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 
 
@@ -49,18 +50,53 @@ def tokenize(text):
         clean_tokens.append(clean_tok)
     return clean_tokens
 
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+    # Class to extract the verbs from the sentences
+    def starting_verb(self, text):
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+            if pos_tags:
+                first_word, first_tag = pos_tags[0]
+                if first_tag in ['VB', 'VBP'] or first_word == 'RT':
+                    return 1
+        return 0
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
+
 
 def build_model():
     pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize)),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier()))
+        ('features', FeatureUnion([
+
+            ('text_pipeline', Pipeline([
+                ('vect', CountVectorizer(tokenizer=tokenize)),
+                ('tfidf', TfidfTransformer())
+            ])),
+
+            ('starting_verb', StartingVerbExtractor())
+        ])),
+
+        ('clf', RandomForestClassifier())
     ])
-    return pipeline
+    
+    parameters = {
+        'features__text_pipeline__tfidf__use_idf': (True, False),
+        'clf__n_estimators': [50, 200]
+    }
+    #print(pipeline.get_params().keys())
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    return cv
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    
     y_pred = model.predict(X_test)
-    print(classification_report(Y_test, y_pred, target_names= category_names))
+    #print(classification_report(Y_test, y_pred, target_names= category_names))
 
 
 def save_model(model, model_filepath):    

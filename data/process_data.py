@@ -26,14 +26,15 @@ def clean_data(df):
 
         # convert column from string to numeric
         categories[column] = categories[column].astype(int)
-    df.drop('categories', axis = 1, inplace = True)
+    df.drop(['categories'], axis = 1, inplace = True)
     df = pd.concat([df, categories], axis = 1)
+    df = df[df.related != 2]
     df.drop_duplicates(inplace=True)
     return df
 
 def save_data(df, database_filename):
     engine = create_engine('sqlite:///{}'.format(database_filename))
-    df.to_sql('disasterResponse', engine, index=False)  
+    df.to_sql('disasterResponse', engine, index=False, if_exists='replace')  
 
 
 def main():
